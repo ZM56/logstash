@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-pipeline
+  namespace: logging
+data:
+  logstash.conf: |
+    input {
+      kafka {
+        bootstrap_servers => "server:9092"
+        topics => ["logs-k8s"]
+        group_id => "logstash-consumer-group"
+        security_protocol => "SSL"
+
+        ssl_truststore_location => "/etc/logstash/certs/server.jks"
+        ssl_truststore_password => "mypassword"
+
+        ssl_keystore_location => "/etc/logstash/certs/cert.p12"
+        ssl_keystore_password => "mypassword"
+        ssl_keystore_type => "PKCS12"
+
+        codec => "json"
+      }
+    }
+
+    filter {
+      ruby {
+        code => '
+          if event.get("[kubernetes][labels]")
+            labels = event.get("[kubernetes][labels]")
+            new_labels = {}
+            labels.each { |k,v|
+              new_key = k.gsub(".", "_")
+              new_labels[new_key] = v
+            }
+            event.set("[kubernetes][labels]", new_labels)
+          end
+        '
+      }
+    }
+
+    output {
+      opensearch {
+        hosts => ["https://opensearch:9200"]
+        index => "k8s-logs-%{+YYYY.MM.dd}"
+        user => "admin"
+        password => "password"
+        ssl => true
+        ssl_certificate_verification => false
+      }
+    }
