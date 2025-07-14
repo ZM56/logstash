@@ -1,0 +1,36 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      containers:
+        - name: logstash
+          image: docker-hub/logstash-oss:8.9.0
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: logstash-pipeline
+              mountPath: /usr/share/logstash/pipeline/
+            - name: kafka-certs
+              mountPath: /etc/logstash/certs/
+              readOnly: true
+          env:
+            - name: LS_JAVA_OPTS
+              value: "-Xms512m -Xmx512m"
+      volumes:
+        - name: logstash-pipeline
+          configMap:
+            name: logstash-pipeline
+        - name: kafka-certs
+          secret:
+            secretName: kafka-client-cert
