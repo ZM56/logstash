@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: logstash
-          image: docker-hub/logstash-oss:8.9.0
+          image: opensearchproject/logstash-oss-with-opensearch-output-plugin:8.9.0
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: logstash-pipeline
